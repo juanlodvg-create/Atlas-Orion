@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Atlas Orion | V11 Full Metrics</title>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Roboto+Mono:wght@600&display=swap');
+
+        :root {
+            --primary: #2563eb;
+            --success: #10b981;
+            --danger: #ef4444;
+            --bg: #f8fafc;
+            --surface: #ffffff;
+            --text: #1e293b;
+            --border: #e2e8f0;
+        }
+
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); margin: 0; color: var(--text); -webkit-font-smoothing: antialiased; }
+
+        /* LOADING */
+        #loading-screen { position: fixed; top:0; left:0; width:100%; height:100%; background:white; z-index:9999; display:flex; justify-content:center; align-items:center; }
+        .spinner { width:40px; height:40px; border:4px solid #f3f3f3; border-top:4px solid var(--primary); border-radius:50%; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* HEADER */
+        header { background: var(--surface); padding: 15px 25px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 1000; }
+        .logo { font-size: 18px; font-weight: 800; }
+        .logo span { color: var(--primary); }
+        #total-header { font-family: 'Roboto Mono'; font-size: 20px; font-weight: 800; color: var(--primary); }
+
+        /* SLIDER DE HORARIOS */
+        .slider-wrapper { width: 100%; overflow-x: auto; display: flex; padding: 15px 0; scrollbar-width: none; }
+        .time-slider { display: flex; gap: 10px; padding: 0 20px; }
+        .time-chip { flex: 0 0 auto; padding: 10px 22px; border-radius: 12px; background: white; border: 1px solid var(--border); font-size: 13px; font-weight: 700; cursor: pointer; }
+        .time-chip.active { background: var(--primary); color: white; transform: scale(1.05); }
+
+        /* TABLA FULL & MOBILE STICKY */
+        .main-card { background: var(--surface); margin: 0 10px 100px 10px; border-radius: 16px; border: 1px solid var(--border); overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .table-wrapper { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; white-space: nowrap; }
+        
+        th { background: #f8fafc; padding: 12px 10px; font-size: 9px; text-transform: uppercase; color: #64748b; border-bottom: 2px solid var(--border); }
+        td { padding: 12px 10px; border-bottom: 1px solid var(--border); text-align: center; font-size: 12px; }
+
+        /* COLUMNA STICKY MÓVIL */
+        .sticky-col { position: sticky; left: 0; background: white; z-index: 10; border-right: 2px solid var(--border); text-align: left !important; min-width: 100px; font-weight: 800; }
+        th.sticky-col { background: #f1f5f9; z-index: 11; }
+
+        /* INPUTS */
+        td[contenteditable="true"] { background: #fbfcfe; color: var(--primary); font-family: 'Roboto Mono'; font-weight: 700; border-radius: 5px; outline: none; transition: 0.2s; }
+        td[contenteditable="true"]:focus { background: #fff; box-shadow: inset 0 0 0 2px var(--primary); transform: scale(1.02); }
+
+        .row-total { background: #0f172a !important; color: white !important; font-weight: 800; }
+        .row-total td { border-top: 2px solid var(--primary); }
+
+        .bar-bg { height: 4px; background: #e2e8f0; border-radius: 10px; overflow: hidden; margin-top: 4px; }
+        .bar-fill { height: 100%; transition: width 0.8s; }
+
+        /* ACTION HUB */
+        .action-hub { position: fixed; bottom: 25px; right: 25px; z-index: 2000; }
+        .hub-btn { width: 60px; height: 60px; background: #1e293b; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; box-shadow: 0 8px 20px rgba(0,0,0,0.2); cursor: pointer; transition: 0.3s; }
+        .action-hub.open .hub-btn { transform: rotate(45deg); background: var(--primary); }
+        .hub-menu { position: absolute; bottom: 75px; right: 0; display: flex; flex-direction: column; gap: 12px; opacity: 0; transform: translateY(15px); pointer-events: none; transition: 0.3s; }
+        .action-hub.open .hub-menu { opacity: 1; transform: translateY(0); pointer-events: auto; }
+        .menu-item { width: 50px; height: 50px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 1px solid var(--border); box-shadow: 0 4px 10px rgba(0,0,0,0.1); font-size: 20px; }
+    </style>
+</head>
+<body>
+
+<div id="loading-screen"><div class="spinner"></div></div>
+
+<header>
+    <div class="logo">ATLAS <span>ORION</span></div>
+    <div id="total-header">$0</div>
+</header>
+
+<div class="slider-wrapper">
+    <div class="time-slider">
+        <div class="time-chip active" onclick="chTurno('14:00', this)">14:00</div>
+        <div class="time-chip" onclick="chTurno('16:00', this)">16:00</div>
+        <div class="time-chip" onclick="chTurno('18:00', this)">18:00</div>
+        <div class="time-chip" onclick="chTurno('20:00', this)">20:00</div>
+        <div class="time-chip" onclick="chTurno('Cierre', this)">CIERRE</div>
+    </div>
+</div>
+
+<div class="main-card">
+    <div class="table-wrapper">
+        <table>
+            <thead>
+                <tr>
+                    <th>Rpt</th>
+                    <th>ID</th>
+                    <th class="sticky-col">Unidad</th>
+                    <th>Tur</th>
+                    <th>Vta</th>
+                    <th>🛒 Conv</th>
+                    <th>Monto</th>
+                    <th>Cuota</th>
+                    <th>🎯 Alc</th>
+                    <th>💎 TP</th>
+                    <th>Col</th>
+                    <th>Gar</th>
+                    <th>Sea</th>
+                    <th>Mag</th>
+                    <th>🛡️ Mix</th>
+                    <th>Cot</th>
+                    <th>QR</th>
+                    <th>📱 QR%</th>
+                </tr>
+            </thead>
+            <tbody id="box"></tbody>
+            <tfoot id="foot"></tfoot>
+        </table>
+    </div>
+</div>
+
+<div class="action-hub" id="hub">
+    <div class="hub-menu">
+        <div class="menu-item" title="WhatsApp" onclick="window.sendWA()">💬</div>
+        <div class="menu-item" title="Captura" onclick="window.shot()">📸</div>
+        <div class="menu-item" title="Limpiar" onclick="window.clr()">🗑️</div>
+    </div>
+    <div class="hub-btn" onclick="document.getElementById('hub').classList.toggle('open')">+</div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+    const cfg = { apiKey: "AIzaSyBwtFdVdUqAYtbV4ze6rJQRJlxU0y8gRos", authDomain: "atlas-orion.firebaseapp.com", projectId: "atlas-orion", storageBucket: "atlas-orion.firebasestorage.app", messagingSenderId: "267035487132", appId: "1:267035487132:web:041b2b711c9e743fa4b659" };
+    const app = initializeApp(cfg);
+    const db = getFirestore(app);
+
+    const TIENDAS = [
+        {id: 2, name: "Cuautitlán", quota: 65000}, {id: 9, name: "Naucalpan", quota: 35000},
+        {id: 25, name: "Puente de Vigas", quota: 15000}, {id: 26, name: "Cuitláhuac", quota: 25000},
+        {id: 186, name: "San Marcos", quota: 20000}, {id: 207, name: "El Rosario", quota: 35000},
+        {id: 224, name: "Santa Mónica", quota: 15000}, {id: 316, name: "Arboledas", quota: 15000},
+        {id: 321, name: "Gran Terraza", quota: 15000}, {id: 370, name: "Plaza Tlalne", quota: 30000},
+        {id: 371, name: "Santa Fe", quota: 30000}, {id: 423, name: "Paseo Interlomas", quota: 20000},
+        {id: 437, name: "La Cúspide", quota: 20000}, {id: 467, name: "San Miguel", quota: 15000},
+        {id: 483, name: "Outlet", quota: 6000}
+    ];
+
+    let hist = {};
+    let hoy = new Date().toISOString().split('T')[0];
+    let turno = '14:00';
+    let st;
+
+    window.chTurno = (t, el) => {
+        turno = t;
+        document.querySelectorAll('.time-chip').forEach(c => c.classList.remove('active'));
+        el.classList.add('active');
+        render();
+    };
+
+    window.upd = (el, tName, field, isCheck = false) => {
+        let val = isCheck ? el.checked : parseFloat(el.innerText.replace(/[^0-9.]/g, '')) || 0;
+        hist[hoy][turno][tName][field] = val;
+        clearTimeout(st);
+        st = setTimeout(() => {
+            setDoc(doc(db, "history", hoy), hist[hoy]);
+            render();
+        }, 800);
+    };
+
+    function render() {
+        const b = document.getElementById('box');
+        const f = document.getElementById('foot');
+        if(!hist[hoy]) return;
+        b.innerHTML = ''; f.innerHTML = '';
+        
+        let S = { tur:0, vta:0, mont:0, cuo:0, col:0, gar:0, sea:0, mag:0, cot:0, qr:0 };
+
+        TIENDAS.forEach(t => {
+            const d = hist[hoy][turno][t.name];
+            S.tur += d.turnos; S.vta += d.pedidos; S.mont += d.monto; S.cuo += (d.quota || t.quota);
+            S.col += d.colch; S.gar += d.garant; S.sea += (d.sealy||0); S.mag += (d.magnus||0);
+            S.cot += d.cotiz; S.qr += d.qr;
+
+            const alc = (d.monto / (d.quota || t.quota)) * 100;
+            const conv = (d.pedidos / Math.max(d.turnos, 1)) * 100;
+            const mix = (d.garant / Math.max(d.colch, 1)) * 100;
+            const pqr = (d.qr / Math.max(d.pedidos, 1)) * 100;
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><input type="checkbox" style="accent-color:var(--success)" ${d.rpt?'checked':''} onchange="upd(this,'${t.name}','rpt',true)"></td>
+                <td style="color:#94a3b8; font-size:10px;">${t.id}</td>
+                <td class="sticky-col">${t.name}</td>
+                <td contenteditable="true" oninput="upd(this,'${t.name}','turnos')">${d.turnos}</td>
+                <td contenteditable="true" oninput="upd(this,'${t.name}','pedidos')">${d.pedidos}</td>
+                <td>${bar(conv,25)}</td>
+                <td contenteditable="true" style="color:var(--primary)" oninput="upd(this,'${t.name}','monto')">${d.monto}</td>
+                <td contenteditable="true" style="color:#94a3b8" oninput="upd(this,'${t.name}','quota')">${d.quota || t.quota}</td>
+                <td>${bar(alc,100)}</td>
+                <td contenteditable="true" oninput="upd(this,'${t.name}','tp')">${d.tp||0}</td>
+                <td contenteditable="true" oninput="upd(this,'${t.name}','colch')">${d.colch}</td>
+                <td contenteditable="true" oninput="upd(this,'${t.name}','garant')">${d.garant}</td>
+                <td contenteditable="true" style="background:#f0f9ff" oninput="upd(this,'${t.name}','sealy')">${d.sealy||0}</td>
+                <td contenteditable="true" style="background:#fdf4ff" oninput="upd(this,'${t.name}','magnus')">${d.magnus||0}</td>
+                <td>${bar(mix,30)}</td>
+                <td contenteditable="true" oninput="upd(this,'${t.name}','cotiz')">${d.cotiz}</td>
+                <td contenteditable="true" oninput="upd(this,'${t.name}','qr')">${d.qr}</td>
+                <td>${bar(pqr,50)}</td>
+            `;
+            b.appendChild(tr);
+        });
+
+        // FILA DE TOTALES
+        const trF = document.createElement('tr');
+        trF.className = 'row-total';
+        trF.innerHTML = `
+            <td>-</td><td>-</td><td class="sticky-col">TOTAL ZONA</td>
+            <td>${S.tur}</td><td>${S.vta}</td><td>${Math.round((S.vta/Math.max(S.tur,1))*100)}%</td>
+            <td>$${S.mont.toLocaleString()}</td><td>$${S.cuo.toLocaleString()}</td>
+            <td>${Math.round((S.mont/S.cuo)*100)}%</td><td>-</td>
+            <td>${S.col}</td><td>${S.gar}</td><td>${S.sea}</td><td>${S.mag}</td>
+            <td>${Math.round((S.gar/Math.max(S.col,1))*100)}%</td>
+            <td>${S.cot}</td><td>${S.qr}</td><td>${Math.round((S.qr/Math.max(S.vta,1))*100)}%</td>
+        `;
+        f.appendChild(trF);
+        document.getElementById('total-header').innerText = '$' + S.mont.toLocaleString();
+    }
+
+    function bar(p, g) {
+        let c = p >= g ? 'var(--success)' : (p > g*0.7 ? '#f59e0b' : 'var(--danger)');
+        return `<div style="font-size:9px; font-weight:bold; color:${c}">${Math.round(p)}%</div>
+                <div class="bar-bg"><div class="bar-fill" style="width:${Math.min(p,100)}%; background:${c}"></div></div>`;
+    }
+
+    window.sendWA = () => {
+        let txt = `*ATLAS ORION - ${turno}*\n\n`;
+        let total = 0, pendientes = [];
+        TIENDAS.forEach(t => {
+            const d = hist[hoy][turno][t.name];
+            if(d.rpt) {
+                let alc = Math.round((d.monto/(d.quota||t.quota))*100);
+                txt += `📍 *${t.name}*: $${d.monto.toLocaleString()} (${alc}%)\n`;
+                total += d.monto;
+            } else { pendientes.push(t.name); }
+        });
+        txt += `\n💰 *ZONA: $${total.toLocaleString()}*`;
+        if(pendientes.length > 0) txt += `\n\n⚠️ *PENDIENTES:* ${pendientes.join(', ')}`;
+        window.open(`https://wa.me/?text=${encodeURIComponent(txt)}`);
+    };
+
+    onSnapshot(doc(db, "history", hoy), (s) => {
+        document.getElementById('loading-screen').style.display = 'none';
+        if (s.exists()) { hist[hoy] = s.data(); render(); }
+        else {
+            hist[hoy] = {};
+            ['14:00','16:00','18:00','20:00','Cierre'].forEach(h => {
+                hist[hoy][h] = {};
+                TIENDAS.forEach(t => hist[hoy][h][t.name] = {monto:0, turnos:0, pedidos:0, colch:0, garant:0, sealy:0, magnus:0, cotiz:0, qr:0, tp:0, rpt:false, quota: t.quota});
+            });
+            setDoc(doc(db, "history", hoy), hist[hoy]);
+        }
+    });
+
+    window.shot = () => {
+        document.getElementById('hub').style.display = 'none';
+        html2canvas(document.body).then(c => {
+            let a = document.createElement('a'); a.download = `Reporte_${turno}.png`; a.href = c.toDataURL(); a.click();
+            document.getElementById('hub').style.display = 'block';
+        });
+    };
+    window.clr = () => { if(confirm("¿Resetear día?")) setDoc(doc(db, "history", hoy), null); };
+</script>
+</body>
+</html>
