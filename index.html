@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Atlas Orion | V12 Automation</title>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Roboto+Mono:wght@600&display=swap');
+        :root { --primary: #2563eb; --success: #10b981; --danger: #ef4444; --bg: #f8fafc; --surface: #ffffff; --text: #1e293b; --border: #e2e8f0; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); margin: 0; color: var(--text); overflow-x: hidden; }
+        #loading-screen { position: fixed; top:0; left:0; width:100%; height:100%; background:white; z-index:9999; display:flex; justify-content:center; align-items:center; }
+        .spinner { width:40px; height:40px; border:4px solid #f3f3f3; border-top:4px solid var(--primary); border-radius:50%; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        header { background: var(--surface); padding: 15px 25px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 1000; }
+        #total-header { font-family: 'Roboto Mono'; font-size: 20px; font-weight: 800; color: var(--primary); }
+        .slider-wrapper { width: 100%; overflow-x: auto; display: flex; padding: 15px 0; scrollbar-width: none; }
+        .time-slider { display: flex; gap: 10px; padding: 0 20px; }
+        .time-chip { flex: 0 0 auto; padding: 10px 22px; border-radius: 12px; background: white; border: 1px solid var(--border); font-size: 13px; font-weight: 700; cursor: pointer; }
+        .time-chip.active { background: var(--primary); color: white; transform: scale(1.05); }
+        .main-card { background: var(--surface); margin: 0 10px 20px 10px; border-radius: 16px; border: 1px solid var(--border); overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .table-wrapper { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; white-space: nowrap; }
+        th { background: #f8fafc; padding: 12px 10px; font-size: 9px; text-transform: uppercase; color: #64748b; border-bottom: 2px solid var(--border); }
+        td { padding: 12px 10px; border-bottom: 1px solid var(--border); text-align: center; font-size: 12px; }
+        .sticky-col { position: sticky; left: 0; background: white; z-index: 10; border-right: 2px solid var(--border); text-align: left !important; min-width: 100px; font-weight: 800; }
+        td[contenteditable="true"] { background: #fbfcfe; color: var(--primary); font-family: 'Roboto Mono'; font-weight: 700; border-radius: 5px; outline: none; }
+        .row-total { background: #0f172a !important; color: white !important; font-weight: 800; }
+        .row-total td { border-top: 2px solid var(--primary); }
+        .row-total .sticky-col { background: #0f172a !important; }
+        /* MODAL GRAFICO */
+        #chart-modal { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:3000; display:none; flex-direction:column; align-items:center; justify-content:center; padding: 20px; box-sizing: border-box; }
+        .modal-content { background: white; width: 100%; max-width: 500px; padding: 20px; border-radius: 20px; text-align: center; }
+        canvas { width: 100% !important; height: auto !important; }
+        .desc-box { margin-top: 15px; font-size: 14px; line-height: 1.4; color: #475569; font-style: italic; }
+        /* ACTION HUB */
+        .action-hub { position: fixed; bottom: 25px; right: 25px; z-index: 2000; }
+        .hub-btn { width: 60px; height: 60px; background: #1e293b; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; box-shadow: 0 8px 20px rgba(0,0,0,0.2); cursor: pointer; }
+        .hub-menu { position: absolute; bottom: 75px; right: 0; display: flex; flex-direction: column; gap: 12px; opacity: 0; transform: translateY(15px); pointer-events: none; transition: 0.3s; }
+        .action-hub.open .hub-menu { opacity: 1; transform: translateY(0); pointer-events: auto; }
+        .menu-item { width: 50px; height: 50px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 1px solid var(--border); box-shadow: 0 4px 10px rgba(0,0,0,0.1); font-size: 20px; }
+    </style>
+</head>
+<body>
+
+<div id="loading-screen"><div class="spinner"></div></div>
+
+<header>
+    <div class="logo">ATLAS <span>ORION</span></div>
+    <div id="total-header">$0</div>
+</header>
+
+<div class="slider-wrapper">
+    <div class="time-slider">
+        <div class="time-chip active" onclick="chTurno('14:00', this)">14:00</div>
+        <div class="time-chip" onclick="chTurno('16:00', this)">16:00</div>
+        <div class="time-chip" onclick="chTurno('18:00', this)">18:00</div>
+        <div class="time-chip" onclick="chTurno('20:00', this)">20:00</div>
+        <div class="time-chip" onclick="chTurno('Cierre', this)">CIERRE</div>
+    </div>
+</div>
+
+<div class="main-card">
+    <div class="table-wrapper">
+        <table>
+            <thead>
+                <tr>
+                    <th>Rpt</th><th>ID</th><th class="sticky-col">Unidad</th>
+                    <th>Tur</th><th>Vta</th><th>Monto</th><th>Cuota</th><th>🎯 Alc</th>
+                    <th>TP</th><th>Col</th><th>Gar</th><th>🛡️ Mix</th><th>Cot</th><th>QR</th>
+                </tr>
+            </thead>
+            <tbody id="box"></tbody>
+            <tfoot id="foot"></tfoot>
+        </table>
+    </div>
+</div>
+
+<div id="chart-modal" onclick="this.style.display='none'">
+    <div class="modal-content" onclick="event.stopPropagation()">
+        <h3>Análisis Poligonal Zona</h3>
+        <canvas id="radarChart"></canvas>
+        <div id="ia-desc" class="desc-box"></div>
+        <button onclick="document.getElementById('chart-modal').style.display='none'" style="margin-top:15px; padding:10px 20px; border-radius:10px; border:none; background:var(--primary); color:white;">Cerrar</button>
+    </div>
+</div>
+
+<div class="action-hub" id="hub">
+    <div class="hub-menu">
+        <div class="menu-item" title="Análisis" onclick="window.showChart()">📊</div>
+        <div class="menu-item" title="WhatsApp" onclick="window.sendWA()">💬</div>
+        <div class="menu-item" title="Captura" onclick="window.shot()">📸</div>
+    </div>
+    <div class="hub-btn" onclick="document.getElementById('hub').classList.toggle('open')">+</div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+    const cfg = { apiKey: "AIzaSyBwtFdVdUqAYtbV4ze6rJQRJlxU0y8gRos", authDomain: "atlas-orion.firebaseapp.com", projectId: "atlas-orion", storageBucket: "atlas-orion.firebasestorage.app", messagingSenderId: "267035487132", appId: "1:267035487132:web:041b2b711c9e743fa4b659" };
+    const app = initializeApp(cfg);
+    const db = getFirestore(app);
+
+    const TIENDAS = [
+        {id: 2, name: "Cuautitlán", quota: 65000}, {id: 9, name: "Naucalpan", quota: 35000},
+        {id: 25, name: "Puente de Vigas", quota: 15000}, {id: 26, name: "Cuitláhuac", quota: 25000},
+        {id: 186, name: "San Marcos", quota: 20000}, {id: 207, name: "El Rosario", quota: 35000},
+        {id: 224, name: "Santa Mónica", quota: 15000}, {id: 316, name: "Arboledas", quota: 15000},
+        {id: 321, name: "Gran Terraza", quota: 15000}, {id: 370, name: "Plaza Tlalne", quota: 30000},
+        {id: 371, name: "Santa Fe", quota: 30000}, {id: 423, name: "Paseo Interlomas", quota: 20000},
+        {id: 437, name: "La Cúspide", quota: 20000}, {id: 467, name: "San Miguel", quota: 15000},
+        {id: 483, name: "Outlet", quota: 6000}
+    ];
+
+    let hist = {};
+    let hoy = new Date().toISOString().split('T')[0];
+    let turno = '14:00';
+    let timer;
+
+    window.chTurno = (t, el) => {
+        turno = t;
+        document.querySelectorAll('.time-chip').forEach(c => c.classList.remove('active'));
+        el.classList.add('active');
+        render();
+    };
+
+    window.upd = (el, tName, field, isCheck = false) => {
+        let val = isCheck ? el.checked : parseFloat(el.innerText.replace(/[^0-9.]/g, '')) || 0;
+        
+        // ACTUALIZACIÓN EN CASCADA (Automatización solicitada)
+        const turnos = ['14:00','16:00','18:00','20:00','Cierre'];
+        let startIdx = turnos.indexOf(turno);
+        
+        for(let i = startIdx; i < turnos.length; i++){
+            let tKey = turnos[i];
+            // Solo actualiza horarios futuros si son iguales al valor anterior (no han sido editados)
+            if(i === startIdx || hist[hoy][tKey][tName][field] === hist[hoy][turno][tName][field]) {
+                hist[hoy][tKey][tName][field] = val;
+            }
+        }
+
+        clearTimeout(timer);
+        timer = setTimeout(() => { setDoc(doc(db, "history", hoy), hist[hoy]); }, 800);
+    };
+
+    function render() {
+        const b = document.getElementById('box');
+        const f = document.getElementById('foot');
+        if(!hist[hoy]) return;
+        b.innerHTML = ''; f.innerHTML = '';
+        let S = { tur:0, vta:0, mont:0, cuo:0, col:0, gar:0, sea:0, mag:0, cot:0, qr:0 };
+
+        TIENDAS.forEach(t => {
+            const d = hist[hoy][turno][t.name];
+            S.tur += d.turnos; S.vta += d.pedidos; S.mont += d.monto; S.cuo += (d.quota || t.quota);
+            S.col += d.colch; S.gar += d.garant; S.cot += d.cotiz; S.qr += d.qr;
+            const alc = Math.round((d.monto / (d.quota || t.quota)) * 100) || 0;
+            const mix = Math.round((d.garant / Math.max(d.colch, 1)) * 100) || 0;
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><input type="checkbox" ${d.rpt?'checked':''} onchange="upd(this,'${t.name}','rpt',true)"></td>
+                <td style="font-size:9px; color:#94a3b8">${t.id}</td>
+                <td class="sticky-col">${t.name}</td>
+                <td contenteditable="true" oninput="upd(this,'${t.name}','turnos')">${d.turnos}</td>
+                <td contenteditable="true" oninput="upd(this,'${t.name}','pedidos')">${d.pedidos}</td>
+                <td contenteditable="true" style="color:var(--primary)" oninput="upd(this,'${t.name}','monto')">${d.monto}</td>
+                <td contenteditable="true" style="color:#94a3b8" oninput="upd(this,'${t.name}','quota')">${d.quota || t.quota}</td>
+                <td style="font-weight:bold; color:${alc>=100?'var(--success)':'#1e293b'}">${alc}%</td>
+                <td contenteditable="true" oninput="upd(this,'${t.name}','tp')">${d.tp||0}</td>
+                <td contenteditable="true" oninput="upd(this,'${t.name}','colch')">${d.colch}</td>
+                <td contenteditable="true" oninput="upd(this,'${t.name}','garant')">${d.garant}</td>
+                <td>${mix}%</td>
+                <td contenteditable="true" oninput="upd(this,'${t.name}','cotiz')">${d.cotiz}</td>
+                <td contenteditable="true" oninput="upd(this,'${t.name}','qr')">${d.qr}</td>
+            `;
+            b.appendChild(tr);
+        });
+
+        const trF = document.createElement('tr');
+        trF.className = 'row-total';
+        trF.innerHTML = `<td>-</td><td>-</td><td class="sticky-col">TOTAL ZONA</td>
+            <td>${S.tur}</td><td>${S.vta}</td><td>$${S.mont.toLocaleString()}</td><td>$${S.cuo.toLocaleString()}</td>
+            <td>${Math.round((S.mont/S.cuo)*100)}%</td><td>-</td><td>${S.col}</td><td>${S.gar}</td>
+            <td>${Math.round((S.gar/Math.max(S.col,1))*100)}%</td><td>${S.cot}</td><td>${S.qr}</td>`;
+        f.appendChild(trF);
+        document.getElementById('total-header').innerText = '$' + S.mont.toLocaleString();
+    }
+
+    // WHATSAPP REPARADO Y OPTIMIZADO
+    window.sendWA = () => {
+        let txt = `*REPORTE ATLAS ORION - ${turno}*\n\n`;
+        let totalZ = 0, vtaZ = 0, pends = [];
+        TIENDAS.forEach(t => {
+            const d = hist[hoy][turno][t.name];
+            if(d.rpt) {
+                let alc = Math.round((d.monto/(d.quota||t.quota))*100);
+                txt += `📍 *${t.name}*: $${d.monto.toLocaleString()} (${alc}%)\n`;
+                totalZ += d.monto; vtaZ += d.pedidos;
+            } else { pends.push(t.name); }
+        });
+        txt += `\n📊 *RESUMEN ZONA:*\nVenta Total: *$${totalZ.toLocaleString()}*\nPedidos: *${vtaZ}*`;
+        if(pends.length > 0) txt += `\n\n⚠️ *PENDIENTES:* ${pends.join(', ')}`;
+        window.open(`https://wa.me/?text=${encodeURIComponent(txt)}`);
+    };
+
+    // GRAFICO POLIGONAL
+    window.showChart = () => {
+        document.getElementById('chart-modal').style.display='flex';
+        let sums = { alc:0, conv:0, mix:0, qr:0, count:0 };
+        TIENDAS.forEach(t => {
+            const d = hist[hoy][turno][t.name];
+            if(d.rpt) {
+                sums.alc += (d.monto/(d.quota||t.quota))*100;
+                sums.conv += (d.pedidos/Math.max(d.turnos,1))*100;
+                sums.mix += (d.garant/Math.max(d.colch,1))*100;
+                sums.qr += (d.qr/Math.max(d.pedidos,1))*100;
+                sums.count++;
+            }
+        });
+        const avg = [sums.alc/sums.count, sums.conv/sums.count*4, sums.mix/sums.count*2, sums.qr/sums.count, 50]; 
+        
+        if(window.myRadar) window.myRadar.destroy();
+        const ctx = document.getElementById('radarChart').getContext('2d');
+        window.myRadar = new Chart(ctx, {
+            type: 'radar',
+            data: {
+                labels: ['Alcance %', 'Conversión', 'Mix Garantía', 'Uso QR', 'Productividad'],
+                datasets: [{ label: 'Rendimiento Zona', data: avg, backgroundColor: 'rgba(37, 99, 235, 0.2)', borderColor: 'var(--primary)', pointBackgroundColor: 'var(--primary)' }]
+            },
+            options: { scales: { r: { suggestMin: 0, suggestMax: 100 } } }
+        });
+        
+        let desc = "El análisis muestra un " + (avg[0] > 70 ? "buen ritmo de venta." : "rezago en metas.") + 
+                   (avg[2] < 20 ? " Se detecta oportunidad en venta de Garantías." : " El Mix es saludable.");
+        document.getElementById('ia-desc').innerText = desc;
+    };
+
+    onSnapshot(doc(db, "history", hoy), (s) => {
+        document.getElementById('loading-screen').style.display = 'none';
+        if (s.exists()) { hist[hoy] = s.data(); render(); }
+        else {
+            hist[hoy] = {};
+            ['14:00','16:00','18:00','20:00','Cierre'].forEach(h => {
+                hist[hoy][h] = {};
+                TIENDAS.forEach(t => hist[hoy][h][t.name] = {monto:0, turnos:0, pedidos:0, colch:0, garant:0, cotiz:0, qr:0, tp:0, rpt:false, quota: t.quota});
+            });
+            setDoc(doc(db, "history", hoy), hist[hoy]);
+        }
+    });
+
+    window.shot = () => {
+        document.getElementById('hub').style.display = 'none';
+        html2canvas(document.body).then(c => {
+            let a = document.createElement('a'); a.download = `Atlas_${turno}.png`; a.href = c.toDataURL(); a.click();
+            document.getElementById('hub').style.display = 'block';
+        });
+    };
+</script>
+</body>
+</html>
