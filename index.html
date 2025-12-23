@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Atlas Orion | V10 Pro Cloud</title>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&family=Roboto+Mono:wght@500&display=swap');
+
+        :root {
+            --google-blue: #1a73e8;
+            --google-green: #1e8e3e;
+            --google-red: #d93025;
+            --accent: #6366f1;
+            --bg-gradient: radial-gradient(circle at top left, #1e293b, #0f172a);
+            --glass: rgba(255, 255, 255, 0.75);
+            --glass-border: rgba(255, 255, 255, 0.4);
+        }
+
+        body { 
+            font-family: 'Plus Jakarta Sans', sans-serif; 
+            background: #e2e8f0;
+            background-image: url('https://www.transparenttextures.com/patterns/cubes.png'), var(--bg-gradient);
+            background-attachment: fixed;
+            margin: 0; 
+            padding-bottom: 110px; 
+            color: #1e293b;
+            min-height: 100vh;
+        }
+
+        /* --- HEADER GLASS --- */
+        header {
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            color: white;
+            padding: 30px 20px;
+            border-bottom: 1px solid var(--glass-border);
+            border-bottom-left-radius: 30px;
+            border-bottom-right-radius: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .status {
+            float: right;
+            font-size: 10px;
+            font-weight: 700;
+            background: rgba(255,255,255,0.1);
+            padding: 5px 15px;
+            border-radius: 20px;
+            border: 1px solid var(--glass-border);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* --- TABS --- */
+        .tabs {
+            display: flex;
+            gap: 10px;
+            padding: 20px;
+            justify-content: center;
+            overflow-x: auto;
+        }
+
+        .tab {
+            padding: 10px 20px;
+            background: var(--glass);
+            backdrop-filter: blur(8px);
+            border-radius: 12px;
+            border: 1px solid var(--glass-border);
+            cursor: pointer;
+            font-weight: 700;
+            color: #475569;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        }
+
+        .tab.active {
+            background: var(--google-blue);
+            color: white;
+            border-color: var(--google-blue);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(26, 115, 232, 0.4);
+        }
+
+        /* --- TABLE FROST GLASS --- */
+        .glass-card {
+            background: var(--glass);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            margin: 0 15px;
+            border-radius: 24px;
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .table-wrapper { overflow-x: auto; }
+
+        table { width: 100%; border-collapse: collapse; white-space: nowrap; }
+
+        th {
+            background: rgba(0,0,0,0.03);
+            padding: 18px 10px;
+            font-weight: 800;
+            text-transform: uppercase;
+            font-size: 10px;
+            color: #475569;
+            letter-spacing: 1px;
+        }
+
+        td {
+            padding: 14px 10px;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+            text-align: center;
+            font-size: 12px;
+        }
+
+        td[contenteditable="true"] {
+            background: rgba(255,255,255,0.5);
+            font-family: 'Roboto Mono', monospace;
+            font-weight: 700;
+            color: var(--google-blue);
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+
+        td[contenteditable="true"]:focus {
+            background: white;
+            outline: 2px solid var(--google-blue);
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        /* --- BARS --- */
+        .bar-bg { height: 6px; background: rgba(0,0,0,0.1); border-radius: 10px; overflow: hidden; margin-top: 5px; width: 50px; margin-left: auto; margin-right: auto; }
+        .bar-fill { height: 100%; transition: width 0.7s cubic-bezier(0.19, 1, 0.22, 1); }
+
+        /* --- FAB --- */
+        .fab {
+            position: fixed;
+            bottom: 25px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(10px);
+            padding: 15px 35px;
+            border-radius: 50px;
+            display: flex;
+            gap: 30px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.4);
+            border: 1px solid rgba(255,255,255,0.2);
+            z-index: 1000;
+        }
+
+        .fab button { background: none; border: none; font-size: 24px; cursor: pointer; transition: transform 0.2s; }
+        .fab button:hover { transform: scale(1.2); }
+    </style>
+</head>
+<body>
+
+<header>
+    <div id="save-indicator" class="status">🟢 Conectado</div>
+    <div style="font-size: 28px; font-weight: 800; letter-spacing: -1.5px;">Atlas Orion <span style="font-weight: 300; opacity: 0.6;">Focus Fix</span></div>
+    <div id="date-label" style="font-size: 12px; opacity: 0.8; margin-top: 5px; font-weight: 600;">Cargando...</div>
+</header>
+
+<div class="tabs" id="tabGroup">
+    <div class="tab active" onclick="chTurno('14:00')">14:00</div>
+    <div class="tab" onclick="chTurno('16:00')">16:00</div>
+    <div class="tab" onclick="chTurno('18:00')">18:00</div>
+    <div class="tab" onclick="chTurno('20:00')">20:00</div>
+    <div class="tab" onclick="chTurno('Cierre')">CIERRE</div>
+</div>
+
+<div class="glass-card">
+    <div class="table-wrapper">
+        <table>
+            <thead>
+                <tr>
+                    <th style="text-align:left; padding-left: 20px;">Unidad</th>
+                    <th>Venta</th>
+                    <th>🎯 Alcance</th>
+                    <th>Tur</th>
+                    <th>Vta</th>
+                    <th>🛒 Conv%</th>
+                    <th>Col</th>
+                    <th>Gar</th>
+                    <th>🛡️ Mix%</th>
+                    <th>Sea</th>
+                    <th>Mag</th>
+                    <th>Cot</th>
+                    <th>QR</th>
+                    <th>📱 QR%</th>
+                </tr>
+            </thead>
+            <tbody id="box"></tbody>
+        </table>
+    </div>
+</div>
+
+<div class="fab">
+    <button title="Enviar Reporte" onclick="window.sendWA()">💬</button>
+    <button title="Capturar Pantalla" onclick="window.shot()">📸</button>
+    <button title="Reiniciar Día" style="filter: hue-rotate(150deg);" onclick="window.clr()">🗑️</button>
+</div>
+
+
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+    const cfg = {
+        apiKey: "AIzaSyBwtFdVdUqAYtbV4ze6rJQRJlxU0y8gRos",
+        authDomain: "atlas-orion.firebaseapp.com",
+        projectId: "atlas-orion",
+        storageBucket: "atlas-orion.firebasestorage.app",
+        messagingSenderId: "267035487132",
+        appId: "1:267035487132:web:041b2b711c9e743fa4b659"
+    };
+
+    const app = initializeApp(cfg);
+    const db = getFirestore(app);
+
+    const TIENDAS = ["Cuautitlán","Naucalpan","Puente de Vigas","Cuitláhuac","San Marcos","El Rosario","Santa Mónica","Arboledas","Gran Terraza","Plaza Tlalne","Santa Fe","Paseo Interlomas","La Cúspide","San Miguel","Outlet"];
+    const METAS = { "Cuautitlán":65000,"Naucalpan":35000,"Puente de Vigas":15000,"Cuitláhuac":25000,"San Marcos":20000,"El Rosario":35000,"Santa Mónica":15000,"Arboledas":15000,"Gran Terraza":15000,"Plaza Tlalne":30000,"Santa Fe":30000,"Paseo Interlomas":20000,"La Cúspide":20000,"San Miguel":15000,"Outlet":6000 };
+
+    let hist = {};
+    let hoy = new Date().toISOString().split('T')[0];
+    let turno = '14:00';
+    let st;
+
+    window.chTurno = (t) => {
+        turno = t;
+        document.querySelectorAll('.tab').forEach(c => c.classList.toggle('active', c.innerText === t));
+        render();
+    };
+
+    window.upd = (el, t, f) => {
+        let v = parseFloat(el.innerText.replace(/[^0-9.]/g, '')) || 0;
+        hist[hoy][turno][t][f] = v;
+        clearTimeout(st);
+        st = setTimeout(async () => {
+            document.getElementById('save-indicator').innerText = "⏳ Guardando...";
+            await setDoc(doc(db, "history", hoy), hist[hoy]);
+            document.getElementById('save-indicator').innerText = "🟢 Online";
+        }, 800);
+    };
+
+    function render() {
+        const b = document.getElementById('box');
+        if(!hist[hoy]) return;
+        b.innerHTML = '';
+        document.getElementById('date-label').innerText = hoy + " | CORTE: " + turno;
+        
+        TIENDAS.forEach(t => {
+            const d = hist[hoy][turno][t];
+            const alc = (d.monto/METAS[t])*100;
+            const conv = (d.pedidos/Math.max(d.turnos,1))*100;
+            const mix = (d.garant/Math.max(d.colch,1))*100;
+            const pqr = (d.qr/Math.max(d.pedidos,1))*100;
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td style="text-align:left; padding-left:20px; font-weight:800; color:#0f172a">${t}</td>
+                <td contenteditable="true" oninput="upd(this,'${t}','monto')">${d.monto}</td>
+                <td>${bar(alc,100)}</td>
+                <td contenteditable="true" oninput="upd(this,'${t}','turnos')">${d.turnos}</td>
+                <td contenteditable="true" oninput="upd(this,'${t}','pedidos')">${d.pedidos}</td>
+                <td>${bar(conv,25)}</td>
+                <td contenteditable="true" oninput="upd(this,'${t}','colch')">${d.colch}</td>
+                <td contenteditable="true" oninput="upd(this,'${t}','garant')">${d.garant}</td>
+                <td>${bar(mix,30)}</td>
+                <td contenteditable="true" oninput="upd(this,'${t}','sealy')">${d.sealy||0}</td>
+                <td contenteditable="true" oninput="upd(this,'${t}','magnus')">${d.magnus||0}</td>
+                <td contenteditable="true" oninput="upd(this,'${t}','cotiz')">${d.cotiz}</td>
+                <td contenteditable="true" oninput="upd(this,'${t}','qr')">${d.qr}</td>
+                <td>${bar(pqr,50)}</td>
+            `;
+            b.appendChild(tr);
+        });
+    }
+
+    function bar(p, g) {
+        let c = p >= g ? 'var(--google-green)' : (p > g*0.7 ? '#f9bc05' : 'var(--google-red)');
+        return `<div style="font-size:9px; font-weight:bold">${Math.round(p)}%</div><div class="bar-bg"><div class="bar-fill" style="width:${Math.min(p,100)}%; background:${c}"></div></div>`;
+    }
+
+    onSnapshot(doc(db, "history", hoy), (s) => {
+        if (s.exists()) {
+            hist[hoy] = s.data();
+            render();
+            document.getElementById('save-indicator').innerText = "🟢 Online";
+        } else {
+            hist[hoy] = {};
+            ['14:00','16:00','18:00','20:00','Cierre'].forEach(h => {
+                hist[hoy][h] = {};
+                TIENDAS.forEach(t => hist[hoy][h][t] = {monto:0, turnos:0, pedidos:0, colch:0, garant:0, sealy:0, magnus:0, cotiz:0, qr:0});
+            });
+            setDoc(doc(db, "history", hoy), hist[hoy]);
+        }
+    });
+
+    window.clr = () => { if(confirm("¿Reiniciar día?")) setDoc(doc(db, "history", hoy), null); };
+    window.shot = () => html2canvas(document.body).then(canvas => {
+        let a = document.createElement('a'); a.download = 'Atlas_Orion_'+hoy+'.png'; a.href = canvas.toDataURL(); a.click();
+    });
+</script>
+</body>
+</html>
