@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Atlas Orion | V13 Ultra Persistence</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;700;800&family=Roboto+Mono:wght@600&display=swap');
+        :root { --primary: #2563eb; --bg: #f8fafc; --surface: #ffffff; --border: #e2e8f0; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); margin: 0; color: #1e293b; }
+        header { background: var(--surface); padding: 15px 25px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 1000; }
+        #total-header { font-family: 'Roboto Mono'; font-size: 20px; font-weight: 800; color: var(--primary); }
+        .slider-wrapper { width: 100%; overflow-x: auto; display: flex; padding: 15px 0; scrollbar-width: none; }
+        .time-slider { display: flex; gap: 10px; padding: 0 20px; }
+        .time-chip { flex: 0 0 auto; padding: 10px 22px; border-radius: 12px; background: white; border: 1px solid var(--border); font-size: 13px; font-weight: 700; cursor: pointer; }
+        .time-chip.active { background: var(--primary); color: white; }
+        .main-card { background: var(--surface); margin: 0 10px 100px 10px; border-radius: 16px; border: 1px solid var(--border); overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .table-wrapper { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; white-space: nowrap; }
+        th { background: #f8fafc; padding: 12px 10px; font-size: 9px; text-transform: uppercase; color: #64748b; border-bottom: 2px solid var(--border); }
+        td { padding: 12px 10px; border-bottom: 1px solid var(--border); text-align: center; font-size: 12px; }
+        .sticky-col { position: sticky; left: 0; background: white; z-index: 10; border-right: 2px solid var(--border); text-align: left !important; min-width: 100px; font-weight: 800; }
+        td[contenteditable="true"] { background: #fbfcfe; color: var(--primary); font-family: 'Roboto Mono'; font-weight: 700; border-radius: 5px; outline: none; }
+        .row-total { background: #0f172a !important; color: white !important; font-weight: 800; }
+        .row-total .sticky-col { background: #0f172a !important; color: white !important; }
+        .action-hub { position: fixed; bottom: 25px; right: 25px; z-index: 2000; }
+        .hub-btn { width: 60px; height: 60px; background: #1e293b; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; cursor: pointer; }
+        .hub-menu { position: absolute; bottom: 75px; right: 0; display: flex; flex-direction: column; gap: 12px; opacity: 0; pointer-events: none; transition: 0.3s; }
+        .action-hub.open .hub-menu { opacity: 1; pointer-events: auto; }
+        .menu-item { width: 50px; height: 50px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 1px solid var(--border); box-shadow: 0 4px 10px rgba(0,0,0,0.1); font-size: 20px; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+<header>
+    <div style="font-weight: 800; font-size: 18px;">ATLAS <span style="color:var(--primary)">ORION</span></div>
+    <div id="total-header">$0</div>
+</header>
+
+<div class="slider-wrapper">
+    <div class="time-slider">
+        <div class="time-chip active" onclick="chTurno('14:00', this)">14:00</div>
+        <div class="time-chip" onclick="chTurno('16:00', this)">16:00</div>
+        <div class="time-chip" onclick="chTurno('18:00', this)">18:00</div>
+        <div class="time-chip" onclick="chTurno('20:00', this)">20:00</div>
+        <div class="time-chip" onclick="chTurno('Cierre', this)">CIERRE</div>
+    </div>
+</div>
+
+<div class="main-card">
+    <div class="table-wrapper">
+        <table>
+            <thead>
+                <tr>
+                    <th>Rpt</th><th>ID</th><th class="sticky-col">Unidad</th>
+                    <th>Tur</th><th>Vta</th><th>🛒 Conv</th><th>Monto</th><th>Cuota</th>
+                    <th>🎯 Alc</th><th>💎 TP</th><th>Col</th><th>Gar</th><th>Sea</th>
+                    <th>Mag</th><th>🛡️ Mix</th><th>Cot</th><th>QR</th><th>📱 QR%</th>
+                </tr>
+            </thead>
+            <tbody id="box"></tbody>
+            <tfoot id="foot"></tfoot>
+        </table>
+    </div>
+</div>
+
+<div class="action-hub" id="hub">
+    <div class="hub-menu">
+        <div class="menu-item" onclick="sendWA()">💬</div>
+        <div class="menu-item" onclick="shot()">📸</div>
+        <div class="menu-item" onclick="clr()">🗑️</div>
+    </div>
+    <div class="hub-btn" onclick="document.getElementById('hub').classList.toggle('open')">+</div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getFirestore, doc, setDoc, onSnapshot, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+    const cfg = { apiKey: "AIzaSyBwtFdVdUqAYtbV4ze6rJQRJlxU0y8gRos", authDomain: "atlas-orion.firebaseapp.com", projectId: "atlas-orion", storageBucket: "atlas-orion.firebasestorage.app", messagingSenderId: "267035487132", appId: "1:267035487132:web:041b2b711c9e743fa4b659" };
+    const app = initializeApp(cfg);
+    const db = getFirestore(app);
+
+    const TIENDAS = [
+        {id: 2, name: "Cuautitlán", quota: 65000}, {id: 9, name: "Naucalpan", quota: 35000},
+        {id: 25, name: "Puente de Vigas", quota: 15000}, {id: 26, name: "Cuitláhuac", quota: 25000},
+        {id: 186, name: "San Marcos", quota: 20000}, {id: 207, name: "El Rosario", quota: 35000},
+        {id: 224, name: "Santa Mónica", quota: 15000}, {id: 316, name: "Arboledas", quota: 15000},
+        {id: 321, name: "Gran Terraza", quota: 15000}, {id: 370, name: "Plaza Tlalne", quota: 30000},
+        {id: 371, name: "Santa Fe", quota: 30000}, {id: 423, name: "Paseo Interlomas", quota: 20000},
+        {id: 437, name: "La Cúspide", quota: 20000}, {id: 467, name: "San Miguel", quota: 15000},
+        {id: 483, name: "Outlet", quota: 6000}
+    ];
+
+    let hist = {};
+    let hoy = new Date().toISOString().split('T')[0];
+    let turno = '14:00';
+    const TURNOS = ['14:00','16:00','18:00','20:00','Cierre'];
+
+    window.chTurno = async (t, el) => {
+        turno = t;
+        document.querySelectorAll('.time-chip').forEach(c => c.classList.remove('active'));
+        el.classList.add('active');
+        
+        // RE-SINCRONIZACIÓN FORZADA AL CAMBIAR TURNO
+        const docRef = doc(db, "history", hoy);
+        const snap = await getDoc(docRef);
+        if(snap.exists()) hist[hoy] = snap.data();
+        render();
+    };
+
+    window.upd = (el, tName, field, isCheck = false) => {
+        let val = isCheck ? el.checked : parseFloat(el.innerText.replace(/[^0-9.]/g, '')) || 0;
+        let startIdx = TURNOS.indexOf(turno);
+        
+        // PERSISTENCIA TOTAL EN CASCADA
+        for(let i = startIdx; i < TURNOS.length; i++){
+            let tKey = TURNOS[i];
+            // Si es el actual o el siguiente está igual al anterior, actualiza
+            if(i === startIdx || hist[hoy][tKey][tName][field] === hist[hoy][TURNOS[i-1]][tName][field]) {
+                hist[hoy][tKey][tName][field] = val;
+            }
+        }
+        
+        // Guardado inmediato para evitar lag
+        setDoc(doc(db, "history", hoy), hist[hoy]);
+        render(); 
+    };
+
+    function render() {
+        const b = document.getElementById('box');
+        const f = document.getElementById('foot');
+        if(!hist[hoy] || !hist[hoy][turno]) return;
+        b.innerHTML = ''; f.innerHTML = '';
+        
+        let S = { tur:0, vta:0, mont:0, cuo:0, col:0, gar:0, sea:0, mag:0, cot:0, qr:0 };
+
+        TIENDAS.forEach(t => {
+            const d = hist[hoy][turno][t.name];
+            S.tur += d.turnos; S.vta += d.pedidos; S.mont += d.monto; S.cuo += (d.quota || t.quota);
+            S.col += d.colch; S.gar += d.garant; S.sea += (d.sealy||0); S.mag += (d.magnus||0);
+            S.cot += d.cotiz; S.qr += d.qr;
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><input type="checkbox" ${d.rpt?'checked':''} onchange="upd(this,'${t.name}','rpt',true)"></td>
+                <td style="color:#94a3b8; font-size:10px;">${t.id}</td>
+                <td class="sticky-col">${t.name}</td>
+                <td contenteditable="true" onblur="upd(this,'${t.name}','turnos')">${d.turnos}</td>
+                <td contenteditable="true" onblur="upd(this,'${t.name}','pedidos')">${d.pedidos}</td>
+                <td>${Math.round((d.pedidos/Math.max(d.turnos,1))*100)}%</td>
+                <td contenteditable="true" style="color:var(--primary)" onblur="upd(this,'${t.name}','monto')">${d.monto}</td>
+                <td contenteditable="true" style="color:#94a3b8" onblur="upd(this,'${t.name}','quota')">${d.quota || t.quota}</td>
+                <td>${Math.round((d.monto/(d.quota || t.quota))*100)}%</td>
+                <td contenteditable="true" onblur="upd(this,'${t.name}','tp')">${d.tp||0}</td>
+                <td contenteditable="true" onblur="upd(this,'${t.name}','colch')">${d.colch}</td>
+                <td contenteditable="true" onblur="upd(this,'${t.name}','garant')">${d.garant}</td>
+                <td contenteditable="true" onblur="upd(this,'${t.name}','sealy')">${d.sealy||0}</td>
+                <td contenteditable="true" onblur="upd(this,'${t.name}','magnus')">${d.magnus||0}</td>
+                <td>${Math.round((d.garant/Math.max(d.colch,1))*100)}%</td>
+                <td contenteditable="true" onblur="upd(this,'${t.name}','cotiz')">${d.cotiz}</td>
+                <td contenteditable="true" onblur="upd(this,'${t.name}','qr')">${d.qr}</td>
+                <td>${Math.round((d.qr/Math.max(d.pedidos,1))*100)}%</td>
+            `;
+            b.appendChild(tr);
+        });
+
+        const trF = document.createElement('tr');
+        trF.className = 'row-total';
+        trF.innerHTML = `<td>-</td><td>-</td><td class="sticky-col">TOTAL ZONA</td>
+            <td>${S.tur}</td><td>${S.vta}</td><td>${Math.round((S.vta/Math.max(S.tur,1))*100)}%</td>
+            <td>$${S.mont.toLocaleString()}</td><td>$${S.cuo.toLocaleString()}</td>
+            <td>${Math.round((S.mont/S.cuo)*100)}%</td><td>-</td>
+            <td>${S.col}</td><td>${S.gar}</td><td>${S.sea}</td><td>${S.mag}</td>
+            <td>${Math.round((S.gar/Math.max(S.col,1))*100)}%</td>
+            <td>${S.cot}</td><td>${S.qr}</td><td>${Math.round((S.qr/Math.max(S.vta,1))*100)}%</td>`;
+        f.appendChild(trF);
+        document.getElementById('total-header').innerText = '$' + S.mont.toLocaleString();
+    }
+
+    window.sendWA = () => {
+        let txt = `*📊 ESTATUS ATLAS ORION - ${turno}*\n`;
+        let totalMonto = 0, totalCuota = 0, totalPedidos = 0, totalColch = 0, totalGar = 0, totalSea = 0, totalMag = 0;
+        let pends = [], conTurnoSinVenta = [], tiendaTop = {name: '', monto: -1};
+
+        TIENDAS.forEach(t => {
+            const d = hist[hoy][turno][t.name];
+            if(d.rpt) {
+                totalMonto += d.monto; totalCuota += (d.quota || t.quota); totalPedidos += d.pedidos;
+                totalColch += d.colch; totalGar += d.garant; totalSea += (d.sealy || 0); totalMag += (d.magnus || 0);
+                if(d.monto > tiendaTop.monto) tiendaTop = {name: t.name, monto: d.monto};
+                if(d.turnos > 0 && d.monto === 0) conTurnoSinVenta.push(`${t.name} (${d.turnos}T)`);
+            } else { pends.push(t.name); }
+        });
+
+        if(tiendaTop.monto > 0) txt += `\n🏆 *TIENDA TOP:* ${tiendaTop.name.toUpperCase()} ($${tiendaTop.monto.toLocaleString()})`;
+        txt += `\n\n*📦 TOTALES POR CATEGORÍA:*\n🛍️ Pedidos: ${totalPedidos}\n🛌 Colchones: ${totalColch}\n🛡️ Garantías: ${totalGar}\n✨ Sealy: ${totalSea} | 💎 Magnus: ${totalMag}\n`;
+        if(conTurnoSinVenta.length > 0) txt += `\n👀 *TURNO SIN VENTA:* \n_${conTurnoSinVenta.join(', ')}_\n`;
+        
+        let f = { '14:00':2.5, '16:00':1.8, '18:00':1.4, '20:00':1.1, 'Cierre':1 }[turno];
+        txt += `\n💰 *VENTA ACTUAL: $${totalMonto.toLocaleString()}* (${Math.round((totalMonto/totalCuota)*100)}%)\n📈 *ESTIMACIÓN CIERRE: $${Math.round(totalMonto*f).toLocaleString()}*`;
+        if(pends.length > 0) txt += `\n\n⚠️ *PENDIENTES:* _${pends.join(', ')}_`;
+
+        window.open(`https://wa.me/?text=${encodeURIComponent(txt)}`);
+    };
+
+    onSnapshot(doc(db, "history", hoy), (s) => {
+        if (s.exists()) { hist[hoy] = s.data(); render(); }
+        else {
+            hist[hoy] = {};
+            TURNOS.forEach(h => {
+                hist[hoy][h] = {};
+                TIENDAS.forEach(t => hist[hoy][h][t.name] = {monto:0, turnos:0, pedidos:0, colch:0, garant:0, sealy:0, magnus:0, cotiz:0, qr:0, tp:0, rpt:false, quota: t.quota});
+            });
+            setDoc(doc(db, "history", hoy), hist[hoy]);
+        }
+    });
+
+    window.shot = () => {
+        document.getElementById('hub').classList.remove('open');
+        html2canvas(document.body).then(c => {
+            let a = document.createElement('a'); a.download = `Atlas_${turno}.png`; a.href = c.toDataURL(); a.click();
+        });
+    };
+    window.clr = () => { if(confirm("¿Resetear día?")) setDoc(doc(db, "history", hoy), null); };
+</script>
+</body>
+</html>
