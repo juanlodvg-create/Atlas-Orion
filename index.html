@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Atlas Orion | V13 Ultra Persistence</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;700;800&family=Roboto+Mono:wght@600&display=swap">
+    <style>
+        :root { --primary: #2563eb; --bg: #f8fafc; --surface: #ffffff; --border: #e2e8f0; --text: #1e293b; --muted: #64748b; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); margin: 0; color: var(--text); overflow-x: hidden; }
+        header { background: var(--surface); padding: 15px 25px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 1000; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        #total-header { font-family: 'Roboto Mono', monospace; font-size: 20px; font-weight: 800; color: var(--primary); }
+        .slider-wrapper { width: 100%; overflow-x: auto; scrollbar-width: none; -ms-overflow-style: none; }
+        .slider-wrapper::-webkit-scrollbar { display: none; }
+        .time-slider { display: flex; gap: 10px; padding: 15px 20px; }
+        .time-chip { flex: 0 0 auto; padding: 10px 22px; border-radius: 12px; background: white; border: 1px solid var(--border); font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.2s; }
+        .time-chip.active { background: var(--primary); color: white; border-color: var(--primary); }
+        .main-card { background: var(--surface); margin: 0 10px 120px; border-radius: 16px; border: 1px solid var(--border); overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.08); }
+        .table-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        table { width: 100%; border-collapse: collapse; min-width: 900px; }
+        th { background: #f1f5f9; padding: 14px 10px; font-size: 9px; text-transform: uppercase; color: var(--muted); letter-spacing: 0.5px; border-bottom: 2px solid var(--border); }
+        td { padding: 14px 10px; border-bottom: 1px solid var(--border); text-align: center; font-size: 13px; }
+        .sticky-col { position: sticky; left: 0; background: var(--surface); z-index: 10; border-right: 2px solid var(--border); text-align: left !important; min-width: 120px; font-weight: 800; box-shadow: 4px 0 10px rgba(0,0,0,0.05); }
+        td[contenteditable="true"] { background: #f0f7ff; color: var(--primary); font-family: 'Roboto Mono', monospace; font-weight: 700; border-radius: 6px; outline: none; padding: 8px; min-width: 60px; }
+        td[contenteditable="true"]:focus { background: #e0efff; }
+        .row-total { background: #0f172a !important; color: white !important; font-weight: 800; font-size: 14px; }
+        .row-total .sticky-col { background: #0f172a !important; }
+        .action-hub { position: fixed; bottom: 25px; right: 25px; z-index: 2000; }
+        .hub-btn { width: 60px; height: 60px; background: #1e293b; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 28px; cursor: pointer; box-shadow: 0 8px 20px rgba(0,0,0,0.2); transition: transform 0.3s; }
+        .hub-btn:active { transform: scale(0.95); }
+        .hub-menu { position: absolute; bottom: 75px; right: 0; display: flex; flex-direction: column; gap: 14px; opacity: 0; pointer-events: none; transition: all 0.3s ease; transform: translateY(10px); }
+        .action-hub.open .hub-menu { opacity: 1; pointer-events: auto; transform: translateY(0); }
+        .menu-item { width: 50px; height: 50px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 1px solid var(--border); box-shadow: 0 6px 15px rgba(0,0,0,0.12); font-size: 22px; cursor: pointer; transition: transform 0.2s; }
+        .menu-item:hover { transform: scale(1.15); }
+    </style>
+</head>
+<body>
+
+<header>
+    <div style="font-weight: 800; font-size: 18px;">ATLAS <span style="color:var(--primary)">ORION</span></div>
+    <div id="total-header">$0</div>
+</header>
+
+<div class="slider-wrapper">
+    <div class="time-slider">
+        <div class="time-chip active" data-turno="14:00">14:00</div>
+        <div class="time-chip" data-turno="16:00">16:00</div>
+        <div class="time-chip" data-turno="18:00">18:00</div>
+        <div class="time-chip" data-turno="20:00">20:00</div>
+        <div class="time-chip" data-turno="Cierre">CIERRE</div>
+    </div>
+</div>
+
+<div class="main-card">
+    <div class="table-wrapper">
+        <table>
+            <thead>
+                <tr>
+                    <th>Rpt</th><th>ID</th><th class="sticky-col">Unidad</th>
+                    <th>Tur</th><th>Vta</th><th>🛒 Conv</th><th>Monto</th><th>Cuota</th>
+                    <th>🎯 Alc</th><th>💎 TP</th><th>Col</th><th>Gar</th><th>Sea</th>
+                    <th>Mag</th><th>🛡️ Mix</th><th>Cot</th><th>QR</th><th>📱 QR%</th>
+                </tr>
+            </thead>
+            <tbody id="box"></tbody>
+            <tfoot id="foot"></tfoot>
+        </table>
+    </div>
+</div>
+
+<div class="action-hub" id="hub">
+    <div class="hub-menu">
+        <div class="menu-item" title="Enviar por WhatsApp">💬</div>
+        <div class="menu-item" title="Captura de pantalla">📸</div>
+        <div class="menu-item" title="Resetear día">🗑️</div>
+    </div>
+    <div class="hub-btn">+</div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getFirestore, doc, onSnapshot, updateDoc, setDoc, deleteField } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+    // ¡IMPORTANTE! Configuración movida a variable segura o usar Firebase Security Rules
+    // NUNCA dejes esto en producción. Usa variables de entorno o hosting seguro.
+    const firebaseConfig = {
+        apiKey: "TU_API_KEY_AQUÍ", // ← CAMBIA ESTO O MEJOR: USA REGLAS DE SEGURIDAD
+        authDomain: "atlas-orion.firebaseapp.com",
+        projectId: "atlas-orion",
+        storageBucket: "atlas-orion.firebasestorage.app",
+        messagingSenderId: "267035487132",
+        appId: "1:267035487132:web:041b2b711c9e743fa4b659"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const TIENDAS = [
+        {id: 2, name: "Cuautitlán", quota: 65000}, {id: 9, name: "Naucalpan", quota: 35000},
+        {id: 25, name: "Puente de Vigas", quota: 15000}, {id: 26, name: "Cuitláhuac", quota: 25000},
+        {id: 186, name: "San Marcos", quota: 20000}, {id: 207, name: "El Rosario", quota: 35000},
+        {id: 224, name: "Santa Mónica", quota: 15000}, {id: 316, name: "Arboledas", quota: 15000},
+        {id: 321, name: "Gran Terraza", quota: 15000}, {id: 370, name: "Plaza Tlalne", quota: 30000},
+        {id: 371, name: "Santa Fe", quota: 30000}, {id: 423, name: "Paseo Interlomas", quota: 20000},
+        {id: 437, name: "La Cúspide", quota: 20000}, {id: 467, name: "San Miguel", quota: 15000},
+        {id: 483, name: "Outlet", quota: 6000}
+    ];
+
+    const TURNOS = ['14:00','16:00','18:00','20:00','Cierre'];
+    let hist = {};
+    let hoy = new Date().toISOString().split('T')[0];
+    let turno = '14:00';
+
+    // Cambiar turno
+    document.querySelectorAll('.time-chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+            turno = chip.dataset.turno;
+            document.querySelectorAll('.time-chip').forEach(c => c.classList.remove('active'));
+            chip.classList.add('active');
+            render();
+        });
+    });
+
+    // Actualizar campo con persistencia en cascada
+    window.upd = async (el, tienda, campo, esCheck = false) => {
+        if (!hist[hoy]?.[turno]?.[tienda]) return;
+
+        const valor = esCheck ? el.checked : parseFloat(el.innerText.replace(/[^0-9.-]/g, '')) || 0;
+        const idx = TURNOS.indexOf(turno);
+
+        for (let i = idx; i < TURNOS.length; i++) {
+            const tKey = TURNOS[i];
+            if (!hist[hoy][tKey]?.[tienda]) continue;
+            if (i === idx || hist[hoy][tKey][tienda][campo] === hist[hoy][TURNOS[i-1]][tienda][campo]) {
+                hist[hoy][tKey][tienda][campo] = campo === 'rpt' ? valor : valor;
+            }
+        }
+
+        try {
+            await setDoc(doc(db, "history", hoy), hist[hoy], { merge: true });
+        } catch (e) {
+            console.error("Error al guardar:", e);
+            alert("Error de conexión. Intenta de nuevo.");
+        }
+    };
+
+    function render() {
+        if (!hist[hoy]?.[turno]) return;
+        const box = document.getElementById('box');
+        const foot = document.getElementById('foot');
+        box.innerHTML = ''; foot.innerHTML = '';
+
+        let totales = { tur:0, vta:0, mont:0, cuo:0, col:0, gar:0, sea:0, mag:0, cot:0, qr:0 };
+
+        TIENDAS.forEach(t => {
+            const d = hist[hoy][turno][t.name] || {};
+            totales.tur += d.turnos || 0;
+            totales.vta += d.pedidos || 0;
+            totales.mont += d.monto || 0;
+            totales.cuo += d.quota || t.quota;
+            totales.col += d.colch || 0;
+            totales.gar += d.garant || 0;
+            totales.sea += d.sealy || 0;
+            totales.mag += d.magnus || 0;
+            totales.cot += d.cotiz || 0;
+            totales.qr += d.qr || 0;
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><input type="checkbox" ${d.rpt ? 'checked' : ''} onchange="upd(this,'${t.name}','rpt',true)"></td>
+                <td style="color:#94a3b8; font-size:10px;">${t.id}</td>
+                <td class="sticky-col">${t.name}</td>
+                <td contenteditable="true" onblur="upd(this,'${t.name}','turnos')">${d.turnos || 0}</td>
+                <td contenteditable="true" onblur="upd(this,'${t.name}','pedidos')">${d.pedidos || 0}</td>
+                <td>${Math.round((d.pedidos || 0) / Math.max(d.turnos || 1, 1) * 100)}%</td>
+                <td contenteditable="true" style="color:var(--primary)" onblur="upd(this,'${t.name}','monto')">${d.monto || 0}</td>
+                <td contenteditable="true" style="color:#94a3b8" onblur="upd(this,'${t.name}','quota')">${d.quota || t.quota}</td>
+                <td>${Math.round((d.monto || 0) / (d.quota || t.quota) * 100)}%</td>
+                <td contenteditable="true" onblur="upd(this,'${t.name}','tp')">${d.tp || 0}</td>
+                <td contenteditable="true" onblur="upd(this,'${t.name}','colch')">${d.colch || 0}</td>
+                <td contenteditable="true" onblur="upd(this,'${t.name}','garant')">${d.garant || 0}</td>
+                <td contenteditable="true" onblur="upd(this,'${t.name}','sealy')">${d.sealy || 0}</td>
+                <td contenteditable="true" onblur="upd(this,'${t.name}','magnus')">${d.magnus || 0}</td>
+                <td>${Math.round((d.garant || 0) / Math.max(d.colch || 1, 1) * 100)}%</td>
+                <td contenteditable="true" onblur="upd(this,'${t.name}','cotiz')">${d.cotiz || 0}</td>
+                <td contenteditable="true" onblur="upd(this,'${t.name}','qr')">${d.qr || 0}</td>
+                <td>${Math.round((d.qr || 0) / Math.max(d.pedidos || 1, 1) * 100)}%</td>
+            `;
+            box.appendChild(tr);
+        });
+
+        const trTotal = document.createElement('tr');
+        trTotal.className = 'row-total';
+        trTotal.innerHTML = `<td colspan="2">-</td><td class="sticky-col">TOTAL ZONA</td>
+            <td>${totales.tur}</td><td>${totales.vta}</td><td>${Math.round(totales.vta / Math.max(totales.tur,1) * 100)}%</td>
+            <td>$${totales.mont.toLocaleString()}</td><td>$${totales.cuo.toLocaleString()}</td>
+            <td>${Math.round(totales.mont / totales.cuo * 100)}%</td><td>-</td>
+            <td>${totales.col}</td><td>${totales.gar}</td><td>${totales.sea}</td><td>${totales.mag}</td>
+            <td>${Math.round(totales.gar / Math.max(totales.col,1) * 100)}%</td>
+            <td>${totales.cot}</td><td>${totales.qr}</td><td>${Math.round(totales.qr / Math.max(totales.vta,1) * 100)}%</td>`;
+        foot.appendChild(trTotal);
+
+        document.getElementById('total-header').textContent = '$' + totales.mont.toLocaleString();
+    }
+
+    // WhatsApp
+    window.sendWA = () => {
+        if (!hist[hoy]?.[turno]) return;
+        let txt = `*📊 ESTATUS ATLAS ORION - ${turno}*\n`;
+        let totalMonto = 0, totalCuota = 0, totalPedidos = 0, totalColch = 0, totalGar = 0, totalSea = 0, totalMag = 0;
+        let pendientes = [], sinVenta = [], top = {name: '', monto: 0};
+
+        TIENDAS.forEach(t => {
+            const d = hist[hoy][turno][t.name] || {};
+            if (d.rpt) {
+                totalMonto += d.monto || 0;
+                totalCuota += d.quota || t.quota;
+                totalPedidos += d.pedidos || 0;
+                totalColch += d.colch || 0;
+                totalGar += d.garant || 0;
+                totalSea += d.sealy || 0;
+                totalMag += d.magnus || 0;
+                if (d.monto > top.monto) top = {name: t.name, monto: d.monto};
+                if ((d.turnos || 0) > 0 && (d.monto || 0) === 0) sinVenta.push(`${t.name} (${d.turnos}T)`);
+            } else {
+                pendientes.push(t.name);
+            }
+        });
+
+        if (top.monto > 0) txt += `\n🏆 *TIENDA TOP:* ${top.name.toUpperCase()} ($${top.monto.toLocaleString()})\n`;
+        txt += `\n*📦 TOTALES:*\n🛍️ Pedidos: ${totalPedidos}\n🛌 Colchones: ${totalColch}\n🛡️ Garantías: ${totalGar}\n✨ Sealy: ${totalSea} | 💎 Magnus: ${totalMag}\n`;
+        if (sinVenta.length) txt += `\n👀 *TURNO SIN VENTA:* \n_${sinVenta.join(', ')}_\n`;
+        
+        const factor = { '14:00':2.5, '16:00':1.8, '18:00':1.4, '20:00':1.1, 'Cierre':1 }[turno];
+        txt += `\n💰 *VENTA ACTUAL:* $${totalMonto.toLocaleString()} (${Math.round(totalMonto/totalCuota*100)}%)\n📈 *PROYECCIÓN CIERRE:* $${Math.round(totalMonto*factor).toLocaleString()}`;
+        if (pendientes.length) txt += `\n\n⚠️ *PENDIENTES:* _${pendientes.join(', ')}_`;
+
+        window.open(`https://wa.me/?text=${encodeURIComponent(txt)}`);
+    };
+
+    // Captura
+    window.shot = () => {
+        document.getElementById('hub').classList.remove('open');
+        html2canvas(document.body, { scale: 2 }).then(canvas => {
+            const link = document.createElement('a');
+            link.download = `Atlas_Orion_${hoy}_${turno}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        });
+    };
+
+    // Reset día
+    window.clr = () => {
+        if (confirm("¿Estás seguro de resetear TODOS los datos del día? Esta acción no se puede deshacer.")) {
+            setDoc(doc(db, "history", hoy), {}); // Borra todo el documento
+        }
+    };
+
+    // Escuchar cambios en tiempo real
+    onSnapshot(doc(db, "history", hoy), (snapshot) => {
+        if (snapshot.exists()) {
+            hist[hoy] = snapshot.data();
+        } else {
+            // Inicializar estructura vacía
+            const initData = {};
+            TURNOS.forEach(t => {
+                initData[t] = {};
+                TIENDAS.forEach(tienda => {
+                    initData[t][tienda.name] = {
+                        monto: 0, turnos: 0, pedidos: 0, colch: 0, garant: 0,
+                        sealy: 0, magnus: 0, cotiz: 0, qr: 0, tp: 0, rpt: false,
+                        quota: tienda.quota
+                    };
+                });
+            });
+            hist[hoy] = initData;
+            setDoc(doc(db, "history", hoy), initData);
+        }
+        render();
+    });
+
+    // Toggle menú flotante
+    document.querySelector('.hub-btn').addEventListener('click', () => {
+        document.getElementById('hub').classList.toggle('open');
+    });
+
+    // Asignar funciones a botones del menú
+    document.querySelectorAll('.menu-item')[0].addEventListener('click', sendWA);
+    document.querySelectorAll('.menu-item')[1].addEventListener('click', shot);
+    document.querySelectorAll('.menu-item')[2].addEventListener('click', clr);
+</script>
+</body>
+</html>
